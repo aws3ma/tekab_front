@@ -78,15 +78,20 @@ export default defineComponent({
             const data = await axios.post("https://entretien.oussema99trabelsi.workers.dev/api/user", { 'fullName': this.person.fullName, 'age': this.person.age })
             const p = new Person(data.data[0].id, data.data[0].full_name, data.data[0].age)
             this.personList.push(p)
+            this.person.id=''
+            this.person.age=0
+            this.person.fullName=''
         },
         async editPerson(id: string) {
             if (id === '') {
                 const data = await axios.put("https://entretien.oussema99trabelsi.workers.dev/api/user", { 'fullName': this.person.fullName, 'age': this.person.age, 'id': this.person.id })
                 const index = this.personList.findIndex((obj: Person) => obj.id === this.person.id);
-                console.log(index)
                 const p = new Person(data.data[0].id, data.data[0].full_name, data.data[0].age)
                 this.personList[index]=p;
                 this.edit = false
+                this.person.age=0
+                this.person.fullName=''
+                this.person.id=''
             }
             else {
                 const toEdit = this.personList.find((obj: Person) => obj.id === id)
