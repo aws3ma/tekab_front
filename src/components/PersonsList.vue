@@ -76,7 +76,8 @@ export default defineComponent({
         },
         async addPerson() {
             const data = await axios.post("https://entretien.oussema99trabelsi.workers.dev/api/user", { 'fullName': this.person.fullName, 'age': this.person.age })
-            this.personList.push(data.data[0])
+            const p = new Person(data.data[0].id, data.data[0].full_name, data.data[0].age)
+            this.personList.push(p)
         },
         async editPerson(id: string) {
             if (id === '') {
