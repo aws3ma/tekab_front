@@ -1,16 +1,16 @@
 <template>
     <div class="m-4">
-        <form id="app">
+        <form>
 
             <div class="flex flex-row items-center gap-2">
                 <label for="name" class="text-lg">Name</label>
-                <input id="name" v-model="person.fullName" type="text" name="name" class="rounded-md">
+                <input id="name" v-model="v$.form.fullName.$model" type="text" name="name" class="rounded-md" placeholder="Full name">
                 <label for="age" class="text-lg">Age</label>
-                <input id="age" v-model="person.age" type="number" name="age" min="0" class="rounded-md">
+                <input id="age" v-model="form.age" type="number" name="age" min="0" class="rounded-md">
                 <!-- <input type="submit" value="Add"> -->
                 <button
                     class="flex p-2.5 bg-green-500 rounded-xl hover:rounded-3xl hover:bg-green-600 transition-all duration-300 text-white"
-                    v-on:click="addPerson()" type="button" v-if="!edit">
+                    v-on:click="addPerson()" type="button" v-if="!edit" >
                     <img src="../assets/img/add.png" alt="" srcset="" class="h-6 w-6">
 
                 </button>
@@ -20,6 +20,13 @@
                     <img src="../assets/img/edit.png" alt="" srcset="" class="h-6 w-6">
 
                 </button>
+            </div>
+            <div>
+                <ul>
+                    <li v-for="(error, index) of v$.form.fullName.$errors" :key="index">
+                        <p class="text-red-500">{{ error.$message }}</p>
+                    </li>
+                </ul>
             </div>
         </form>
 
@@ -54,15 +61,33 @@
 import axios from "axios";
 import { defineComponent } from "vue"
 import Person from "@/models/Person";
-
-
+import useVuelidate from '@vuelidate/core'
+import { required, minLength } from '@vuelidate/validators'
+export function validName(name: string) {
+    let validNamePattern = new RegExp("^[a-zA-Z]+(?:['\\s][a-zA-Z]+)*$");
+    if(name == '')
+        return false;
+    if (validNamePattern.test(name)) {
+        return true;
+    }
+    return false;
+}
 export default defineComponent({
     name: "App",
+    setup() {
+        return {
+            v$: useVuelidate()
+        }
+    },
     data() {
         return {
             personList: [] as Person[],
-            person: new Person('', '', 0),
-            edit: false
+            edit: false,
+            form: {
+                id: '',
+                fullName: '',
+                age: 0
+            }
         };
     },
     methods: {
@@ -75,31 +100,35 @@ export default defineComponent({
             // this.personList = data.data;
         },
         async addPerson() {
-            const data = await axios.post("https://entretien.oussema99trabelsi.workers.dev/api/user", { 'fullName': this.person.fullName, 'age': this.person.age })
+            if (this.v$.$error) {
+                return
+            }
+            const data = await axios.post("https://entretien.oussema99trabelsi.workers.dev/api/user", { 'fullName': this.form.fullName, 'age': this.form.age })
             const p = new Person(data.data[0].id, data.data[0].full_name, data.data[0].age)
             this.personList.push(p)
-            this.person.id=''
-            this.person.age=0
-            this.person.fullName=''
+            this.form.id = ''
+            this.form.age = 0
+            this.form.fullName = ''
         },
         async editPerson(id: string) {
             if (id === '') {
-                const data = await axios.put("https://entretien.oussema99trabelsi.workers.dev/api/user", { 'fullName': this.person.fullName, 'age': this.person.age, 'id': this.person.id })
-                const index = this.personList.findIndex((obj: Person) => obj.id === this.person.id);
+                if (this.v$.$anyDirty)
+                    return
+                const data = await axios.put("https://entretien.oussema99trabelsi.workers.dev/api/user", { 'fullName': this.form.fullName, 'age': this.form.age, 'id': this.form.id })
+                const index = this.personList.findIndex((obj: Person) => obj.id === this.form.id);
                 const p = new Person(data.data[0].id, data.data[0].full_name, data.data[0].age)
-                this.personList[index]=p;
+                this.personList[index] = p;
                 this.edit = false
-                this.person.age=0
-                this.person.fullName=''
-                this.person.id=''
+                this.form.age = 0
+                this.form.fullName = ''
+                this.form.id = ''
             }
             else {
                 const toEdit = this.personList.find((obj: Person) => obj.id === id)
-                console.log(toEdit)
                 if (toEdit) {
-                    this.person.id = toEdit.id
-                    this.person.fullName = toEdit.fullName
-                    this.person.age = toEdit.age
+                    this.form.id = toEdit.id
+                    this.form.fullName = toEdit.fullName
+                    this.form.age = toEdit.age
                     this.edit = true
                 }
             }
@@ -110,8 +139,23 @@ export default defineComponent({
             if (index !== -1) {
                 this.personList.splice(index, 1); // Removes one element at the found index
             }
-            const data = await axios.delete(`https://entretien.oussema99trabelsi.workers.dev/api/user/${id}`)
-            console.log(data)
+            await axios.delete(`https://entretien.oussema99trabelsi.workers.dev/api/user/${id}`)
+        },
+    },
+    validations() {
+        return {
+            form: {
+
+                fullName: {
+                    required,
+                    $autoDirty: true,
+                    minLength: minLength(2),
+                    name_validation: {
+                        $validator: validName,
+                        $message: 'Invalid Name. Valid name only contain letters and spaces'
+                    }
+                },
+            }
         }
     },
     beforeMount() {
