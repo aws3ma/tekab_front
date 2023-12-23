@@ -6,7 +6,7 @@
                 <input id="name" v-model="v$.form.full_name.$model" type="text" name="name" class="rounded-md"
                     placeholder="Full name">
                 <label for="age" class="text-lg">Age</label>
-                <input id="age" v-model="form.age" type="number" name="age" min="0" class="rounded-md">
+                <input id="age" v-model="v$.form.age.$model" type="number" name="age" min="0" class="rounded-md">
                 <label for="email" class="text-lg">Email</label>
                 <input id="email" v-model="v$.form.email.$model" type="email" name="email" min="0" class="rounded-md">
                 <button
@@ -26,6 +26,9 @@
                         {{ error.$message }}
                     </li>
                     <li class="text-red-500" v-for="(error, index) of v$.form.email.$errors" :key="index">
+                        {{ error.$message }}
+                    </li>
+                    <li class="text-red-500" v-for="(error, index) of v$.form.age.$errors" :key="index">
                         {{ error.$message }}
                     </li>
                 </ul>
@@ -66,7 +69,7 @@ import axios from "axios";
 import { defineComponent } from "vue"
 import Person from "@/models/Person";
 import useVuelidate from '@vuelidate/core'
-import { required, minLength, email } from '@vuelidate/validators'
+import { required, minLength, email, between } from '@vuelidate/validators'
 export function validName(name: string) {
     let validNamePattern = new RegExp("^[a-zA-Z]+(?:['\\s][a-zA-Z]+)*$");
     if (name == '')
@@ -157,12 +160,11 @@ export default defineComponent({
                 },
                 email: {
                     required,
-
                     email,
-                    // name_validation: {
-                    //     $validator: email,
-                    //     $message: 'Invalid email.'
-                    // }
+                },
+                age: {
+                    required,
+                    betweenValue: between(0, 100),
                 }
             }
         }
